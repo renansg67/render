@@ -1,0 +1,12 @@
+# .gitignore
+
+# Ignorar o arquivo de segredos local
+.env
+
+# Ignorar ambientes virtuais
+venv/
+*.venv/
+
+# Ignorar caches do Python
+__pycache__/
+*.pyc
