@@ -2,21 +2,39 @@
 import streamlit as st
 import psycopg2
 import os
-from dotenv import load_dotenv # <-- Importante!
+from dotenv import load_dotenv
 
 # --- CONFIGURAÇÃO ---
-# Carrega as variáveis do arquivo .env (se ele existir)
-# Esta linha é a mágica: ela lê o .env e torna as variáveis
-# acessíveis para o os.getenv()
-load_dotenv()
+load_dotenv() 
 
-# Agora, pegamos as variáveis do ambiente.
-# Localmente: Elas virão do .env
-# No Render: Elas virão do painel do Render
+# Vamos ler as variáveis que o Render nos dá
 DB_HOST = os.getenv("DB_HOST")
 DB_NAME = os.getenv("POSTGRES_DB")
 DB_USER = os.getenv("POSTGRES_USER")
 DB_PASS = os.getenv("POSTGRES_PASSWORD")
+# --------------------
+
+# --- DEBUG DE VARIÁVEIS ---
+# Vamos imprimir na tela o que o Render está vendo
+st.title("🐞 Debugando Variáveis de Ambiente no Render 🐞")
+st.header("Verificação das Chaves:")
+
+st.write(f"1. Chave 'DB_HOST':")
+st.write(f"`{DB_HOST}`")
+
+st.write(f"2. Chave 'POSTGRES_DB':")
+st.write(f"`{DB_NAME}`")
+
+st.write(f"3. Chave 'POSTGRES_USER':")
+st.write(f"`{DB_USER}`")
+
+st.write("4. Chave 'POSTGRES_PASSWORD':")
+if DB_PASS is None or DB_PASS == "":
+    st.error("ERRO: A variável 'POSTGRES_PASSWORD' está VAZIA ou não foi encontrada.")
+else:
+    st.success("OK: A variável 'POSTGRES_PASSWORD' foi encontrada (Não será exibida por segurança).")
+
+st.header("Tentativa de Conexão:")
 # --------------------
 
 
@@ -31,67 +49,18 @@ def get_db_connection():
             port=5432 
         )
         return conn
-    except psycopg2.OperationalError:
-        st.error("Falha ao conectar! Verifique se as variáveis no .env (local) ou no Render (produção) estão corretas.")
-        # O erro de DNS (rede) que você teve também cairia aqui.
-        return None
     except Exception as e:
-        st.error(f"Erro inesperado: {e}")
+        # Mostra o erro real do psycopg2
+        st.error(f"Erro real do psycopg2: {e}")
         return None
 
 # --- Interface do Streamlit ---
-st.title("Teste com .env e Psycopg2 🚀")
-
 conn = get_db_connection()
 
 if conn:
-    st.success("Conectado com sucesso ao Supabase (lendo do .env)!")
+    st.success("🎉 CONECTADO COM SUCESSO! 🎉")
+    st.balloons()
     
-    # Criar tabela (se não existir)
-    try:
-        with conn.cursor() as cur:
-            cur.execute("""
-                CREATE TABLE IF NOT EXISTS test_logs (
-                    id SERIAL PRIMARY KEY,
-                    message TEXT,
-                    created_at TIMESTAMPTZ DEFAULT NOW()
-                );
-            """)
-            conn.commit()
-    except Exception as e:
-        st.error(f"Erro ao criar tabela: {e}")
-
-    # Seção de Escrita
-    with st.form("add_log_form"):
-        message = st.text_input("Escreva uma mensagem para salvar:")
-        submitted = st.form_submit_button("Salvar no Banco")
-        
-        if submitted and message:
-            try:
-                with conn.cursor() as cur:
-                    cur.execute(
-                        "INSERT INTO test_logs (message) VALUES (%s)", 
-                        (message,)
-                    )
-                    conn.commit()
-                    st.success("Mensagem salva!")
-                    st.rerun()
-            except Exception as e:
-                st.error(f"Erro ao salvar: {e}")
-
-    # Seção de Leitura
-    st.header("Logs Salvos no Banco")
-    try:
-        with conn.cursor() as cur:
-            cur.execute("SELECT message, created_at FROM test_logs ORDER BY created_at DESC LIMIT 10")
-            logs = cur.fetchall()
-            
-            if not logs:
-                st.info("Nenhuma mensagem encontrada.")
-            else:
-                for log in logs:
-                    st.markdown(f"- **{log[0]}** *(em {log[1].strftime('%d/%m/%Y %H:%M')})*")
-    except Exception as e:
-        st.error(f"Erro ao ler os logs: {e}")
-        
+    # ... (o resto do seu código de escrita e leitura pode vir aqui) ...
+    
     conn.close()
